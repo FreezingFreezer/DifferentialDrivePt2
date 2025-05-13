@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import lib.CommandRobot;
 import lib.FaultLogger;
+import main.java.robot.drive.Drive;
 import monologue.Logged;
 import monologue.Monologue;
 import org.littletonrobotics.urcl.URCL;
@@ -34,7 +35,7 @@ public class Robot extends CommandRobot implements Logged {
   private final PowerDistribution pdh = new PowerDistribution();
 
   // SUBSYSTEMS
-
+  Drive drive = new Drive();
   // COMMANDS
 
   /** The robot contains subsystems, OI devices, and commands. */
@@ -43,6 +44,8 @@ public class Robot extends CommandRobot implements Logged {
     configureGameBehavior();
     configureBindings();
   }
+
+  
 
   /** Configures basic behavior for different periods during the game. */
   private void configureGameBehavior() {
@@ -67,10 +70,14 @@ public class Robot extends CommandRobot implements Logged {
     } else {
       DriverStation.silenceJoystickConnectionWarning(true);
     }
+
+    
   }
 
   /** Configures trigger -> command bindings. */
-  private void configureBindings() {}
+  private void configureBindings() {
+    drive.setDefaultCommand(drive.drive(driver::getLeftY, driver::getRightY));
+  }
 
   /**
    * Command factory to make both controllers rumble.
