@@ -2,7 +2,21 @@
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
+      "/Robot/drive/field2d": "Field2d",
       "/SmartDashboard/Scheduler": "Scheduler"
+    }
+  },
+  "NetworkTables": {
+    "transitory": {
+      "Robot": {
+        "drive": {
+          "open": true
+        },
+        "open": true
+      },
+      "SmartDashboard": {
+        "open": true
+      }
     }
   },
   "NetworkTables Info": {

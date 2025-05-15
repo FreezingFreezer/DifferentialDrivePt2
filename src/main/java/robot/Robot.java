@@ -3,6 +3,14 @@ package robot;
 import static edu.wpi.first.units.Units.Seconds;
 import static robot.Constants.PERIOD;
 
+import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
+
+import org.littletonrobotics.urcl.URCL;
+
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.DifferentialDriveOdometry;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
@@ -15,93 +23,62 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import lib.CommandRobot;
 import lib.FaultLogger;
-import main.java.robot.drive.Drive;
 import monologue.Logged;
 import monologue.Monologue;
-import org.littletonrobotics.urcl.URCL;
+import monologue.Annotations.Log;
 import robot.Ports.OI;
+import robot.drive.Drive;
 
-/**
- * This class is where the bulk of the robot should be declared. Since Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
- * periodic methods (other than the scheduler calls). Instead, the structure of the robot (including
- * subsystems, commands, and trigger mappings) should be declared here.
- */
+
+
+// Reference: https://github.com/AnkitKumar5250/SummerInstitute2024Team1/blob/main/src/main/java/frc/robot/Robot.java
 public class Robot extends CommandRobot implements Logged {
-  // INPUT DEVICES
-  private final CommandXboxController operator = new CommandXboxController(OI.OPERATOR);
-  private final CommandXboxController driver = new CommandXboxController(OI.DRIVER);
+  @Log.NT
+  private final Drive drive = new Drive();
 
-  private final PowerDistribution pdh = new PowerDistribution();
+  private final CommandXboxController operator = new CommandXboxController(Ports.OI.OPERATOR);
 
-  // SUBSYSTEMS
-  Drive drive = new Drive();
-  // COMMANDS
-
-  /** The robot contains subsystems, OI devices, and commands. */
-  public Robot() {
-    super(PERIOD.in(Seconds));
-    configureGameBehavior();
-    configureBindings();
+  public void robotPeriodic() {
+    CommandScheduler.getInstance().run();
   }
+
 
   
 
-  /** Configures basic behavior for different periods during the game. */
-  private void configureGameBehavior() {
-    // TODO: Add configs for all additional libraries, components, intersubsystem interaction
-    // Configure logging with DataLogManager, Monologue, URCL, and FaultLogger
-    DataLogManager.start();
-    Monologue.setupMonologue(this, "/Robot", false, true);
-    addPeriodic(Monologue::updateAll, PERIOD.in(Seconds));
-    addPeriodic(FaultLogger::update, 2);
-
-    SmartDashboard.putData(CommandScheduler.getInstance());
-    // Log PDH
-    SmartDashboard.putData("PDH", pdh);
-    FaultLogger.register(pdh);
-
-    RobotController.setBrownoutVoltage(6.0);
-
-    if (isReal()) {
-      URCL.start();
-      pdh.clearStickyFaults();
-      pdh.setSwitchableChannel(true);
-    } else {
-      DriverStation.silenceJoystickConnectionWarning(true);
-    }
-
-    
+  @Override
+  public void autonomousInit() {
+    CommandScheduler.getInstance()
+      .schedule(drive.drive(new DoubleSupplier() {
+        @Override
+        public double getAsDouble() {
+          return operator.getLeftX();
+        }
+      }, new DoubleSupplier() {
+        @Override
+        public double getAsDouble() {
+          return operator.getRightX();
+        }
+      })); 
+      DataLogManager.start();
+      Monologue.setupMonologue(this, "/Robot", false, true);
+      addPeriodic(Monologue::updateAll, PERIOD.in(Seconds));
+      addPeriodic(FaultLogger::update, 2);
   }
-
-  /** Configures trigger -> command bindings. */
-  private void configureBindings() {
-    drive.setDefaultCommand(drive.drive(driver::getLeftY, driver::getRightY));
-  }
-
-  /**
-   * Command factory to make both controllers rumble.
-   *
-   * @param rumbleType The area of the controller to rumble.
-   * @param strength The intensity of the rumble.
-   * @return The command to rumble both controllers.
-   */
-  public Command rumble(RumbleType rumbleType, double strength) {
-    return Commands.runOnce(
-            () -> {
-              driver.getHID().setRumble(rumbleType, strength);
-              operator.getHID().setRumble(rumbleType, strength);
-            })
-        .andThen(Commands.waitSeconds(0.3))
-        .finallyDo(
-            () -> {
-              driver.getHID().setRumble(rumbleType, 0);
-              operator.getHID().setRumble(rumbleType, 0);
-            });
+  
+  @Override
+  public void teleopInit() {
+    // Cancels all autonomous commands at the beggining of telop
+    CommandScheduler.getInstance().cancelAll();
   }
 
   @Override
-  public void close() {
-    super.close();
+  public void simulationInit() {
+    // Adds field visualizer to dashboard
+    
+  }
+
+  @Override
+  public void simulationPeriodic() {
+
   }
 }
